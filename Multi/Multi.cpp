@@ -61,7 +61,7 @@ public:
     void BuildRootSignature();
     void BuildPipelineState();
 
-    void createGeometry(Geo geometry);
+    void createGeometry(Geo geometry, XMMATRIX pos_init);
 };
 
 // ------------------------------------------------------------------------------
@@ -96,13 +96,17 @@ void Multi::Init()
         window->AspectRatio(), 
         1.0f, 100.0f));
 
+    //XMStoreFloat4x4(&Proj, XMMatrixOrthographicLH(10.0f, 10.0f, 1.0f, 100.0f));
+
     // ----------------------------------------
     // Inicialização da Geometria
     // ----------------------------------------
 
-    createGeometry(GRID);
-    createGeometry(BOX);
-    createGeometry(SPHERE);
+    createGeometry(GRID, XMMatrixScaling(1.0f, 1.0f, 1.0f) * XMMatrixTranslation(0.0f, 0.0f, 0.0f));
+    createGeometry(BOX, XMMatrixScaling(0.4f, 0.4f, 0.4f) * XMMatrixTranslation(0.0f, 0.2f, 0.0f));
+    createGeometry(SPHERE, XMMatrixScaling(0.4f, 0.4f, 0.4f) * XMMatrixTranslation(-1.0f, 0.4f, 1.0f));
+    createGeometry(GLOBE, XMMatrixScaling(0.4f, 0.4f, 0.4f) * XMMatrixTranslation(-1.0f, 1.0f, -1.0f));
+    createGeometry(CYLINDER, XMMatrixScaling(0.4f, 0.4f, 0.4f) * XMMatrixTranslation(0.8f, 0.6f, -1.0f));
 
     // ---------------------------------------
 
@@ -179,19 +183,19 @@ void Multi::Update()
     }
 
     if (input->KeyPress('E')) {
-        createGeometry(SPHERE);
+        createGeometry(SPHERE, XMMatrixScaling(0.4f, 0.4f, 0.4f) * XMMatrixTranslation(0.0f, 0.2f, 0.0f));
     }
     if (input->KeyPress('B')) {
-        createGeometry(BOX);
+        createGeometry(BOX, XMMatrixScaling(0.4f, 0.4f, 0.4f) * XMMatrixTranslation(0.0f, 0.2f, 0.0f));
     }
     if (input->KeyPress('C')) {
-        createGeometry(CYLINDER);
+        createGeometry(CYLINDER, XMMatrixScaling(0.4f, 0.4f, 0.4f) * XMMatrixTranslation(0.0f, 0.2f, 0.0f));
     }
     if (input->KeyPress('G')) {
-        createGeometry(GLOBE);
+        createGeometry(GLOBE, XMMatrixScaling(0.4f, 0.4f, 0.4f) * XMMatrixTranslation(0.0f, 0.2f, 0.0f));
     }
     if (input->KeyPress('P')) {
-        createGeometry(GRID);
+        createGeometry(GRID, XMMatrixScaling(0.4f, 0.4f, 0.4f) * XMMatrixTranslation(0.0f, 0.2f, 0.0f));
     }
 
     XMMATRIX transform = XMLoadFloat4x4(&Identity);
@@ -347,16 +351,14 @@ void Multi::Finalize()
 }
 
 ////////// TODO
-void Multi::createGeometry(Geo geometry) {
+void Multi::createGeometry(Geo geometry, XMMATRIX pos_init) {
 
     Object obj;
     XMStoreFloat4x4(&obj.world,
-        XMMatrixScaling(0.4f, 0.4f, 0.4f) *
-        XMMatrixTranslation(0.0f, 0.2f, 0.0f));
+        pos_init);
 
     XMStoreFloat4x4(&obj.worldStopped,
-        XMMatrixScaling(0.4f, 0.4f, 0.4f) *
-        XMMatrixTranslation(0.0f, 0.2f, 0.0f));
+        pos_init);
     
     obj.mesh = new Mesh();
 
@@ -385,7 +387,7 @@ void Multi::createGeometry(Geo geometry) {
             break;
         }
         case SPHERE: {
-            Sphere sphere(1.0f, 20, 20);
+            Sphere sphere(1.0f, 15, 15);
             for (auto& v : sphere.vertices) v.color = XMFLOAT4(DirectX::Colors::Crimson);
             
             obj.mesh->VertexBuffer(sphere.VertexData(), sphere.VertexCount() * sizeof(Vertex), sizeof(Vertex));
@@ -407,6 +409,20 @@ void Multi::createGeometry(Geo geometry) {
 
             break;
         }
+        case GLOBE: {
+            GeoSphere geosphere(1.0f, 3);
+            for (auto& v : geosphere.vertices) v.color = XMFLOAT4(DirectX::Colors::DimGray);
+
+            /*obj.world = Identity;
+            obj.worldStopped = Identity;*/
+            obj.mesh->VertexBuffer(geosphere.VertexData(), geosphere.VertexCount() * sizeof(Vertex), sizeof(Vertex));
+            obj.mesh->IndexBuffer(geosphere.IndexData(), geosphere.IndexCount() * sizeof(uint), DXGI_FORMAT_R32_UINT);
+            obj.submesh.indexCount = geosphere.IndexCount();
+            obj.round = true;
+
+            break;
+        }
+
     }
 
     obj.mesh->ConstantBuffer(sizeof(ObjectConstants));
